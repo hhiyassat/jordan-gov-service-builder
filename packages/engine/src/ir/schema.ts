@@ -147,11 +147,6 @@ export const ConcessionSchema: z.ZodType<Concession> = z.object({
   id: z.string().min(1),
   label: LocalizedSchema,
   appliesWhen: PredicateSchema,
-  overrides: z.object({
-    fees: z.array(FeeDefSchema).optional(),
-    steps: z.array(StepDefSchema).optional(),
-    transitions: z.array(TransitionDefSchema).optional(),
-  }),
 });
 
 export const ServiceDefinitionSchema: z.ZodType<ServiceDefinition> = z.object({

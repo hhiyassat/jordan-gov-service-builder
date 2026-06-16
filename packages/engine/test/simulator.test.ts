@@ -212,4 +212,48 @@ describe("simulate", () => {
       ok: true,
     });
   });
+
+  it("reports ok:false when an always-guard cycle prevents termination", () => {
+    const cyclicService: ServiceDefinition = {
+      ...approvalService,
+      id: "svc-cycle",
+      states: [
+        {
+          id: "a",
+          status: { ar: "أ", en: "A" },
+          statusCode: "a",
+          isTerminal: false,
+        },
+        {
+          id: "b",
+          status: { ar: "ب", en: "B" },
+          statusCode: "b",
+          isTerminal: false,
+        },
+      ],
+      initialStateId: "a",
+      transitions: [
+        {
+          id: "t-a-b",
+          from: "a",
+          to: "b",
+          guard: guard("g-a-b"),
+        },
+        {
+          id: "t-b-a",
+          from: "b",
+          to: "a",
+          guard: guard("g-b-a"),
+        },
+      ],
+    };
+
+    const report = simulate(cyclicService, [
+      { name: "cyclist", fields: {}, apiResults: {} },
+    ]);
+
+    expect(report.allPassed).toBe(false);
+    expect(report.perProfile[0]?.ok).toBe(false);
+    expect(report.perProfile[0]?.mismatch).toContain("cycle");
+  });
 });

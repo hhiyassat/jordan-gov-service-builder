@@ -238,7 +238,7 @@ describe("compile", () => {
       expectFailed(compile(bad), "REFERENTIAL_INTEGRITY", "initialStateId");
     });
 
-    it("validates nested predicates and concession overrides", () => {
+    it("validates concession appliesWhen predicates", () => {
       const withConcession = {
         ...validDef,
         concessions: [
@@ -250,40 +250,6 @@ describe("compile", () => {
               of: [
                 { kind: "fieldPresent", field: "national_id" },
                 { kind: "apiCheck", check: "cspd_ok" },
-              ],
-            },
-            overrides: {
-              steps: [
-                {
-                  id: "override-payment",
-                  kind: "PAYMENT",
-                  title: { ar: "دفع مخفض", en: "Reduced payment" },
-                  isOptional: false,
-                  estimatedMinutes: 5,
-                  feeIds: ["override-fee"],
-                },
-              ],
-              fees: [
-                {
-                  id: "override-fee",
-                  name: { ar: "رسوم مخفضة", en: "Reduced fee" },
-                  amount: 0,
-                  currency: "JOD",
-                },
-              ],
-              transitions: [
-                {
-                  id: "override-transition",
-                  from: "draft",
-                  to: "completed",
-                  stepId: "override-payment",
-                  guard: {
-                    id: "override-guard",
-                    cause: { kind: "always" },
-                    conditions: [],
-                    impediments: [],
-                  },
-                },
               ],
             },
           },

@@ -193,30 +193,6 @@
         "kind": "fieldEquals",
         "field": "category",
         "value": "low_income"
-      },
-      "overrides": {
-        "fees": [
-          {
-            "id": "support-fee",
-            "name": { "ar": "رسوم مخفضة", "en": "Waived Fee" },
-            "amount": 0,
-            "currency": "JOD"
-          }
-        ],
-        "transitions": [
-          {
-            "id": "t-assessed-waiver-override",
-            "from": "assessed",
-            "to": "waiver_granted",
-            "stepId": "details",
-            "guard": {
-              "id": "guard-waiver-override",
-              "cause": { "kind": "always" },
-              "conditions": [],
-              "impediments": []
-            }
-          }
-        ]
       }
     }
   ]

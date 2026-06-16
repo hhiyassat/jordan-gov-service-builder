@@ -60,32 +60,18 @@ function buildRegistry(def: ServiceDefinition): EntityRegistry {
   };
 }
 
-function mergeRegistries(
-  base: EntityRegistry,
-  extra: {
-    steps?: ServiceDefinition["steps"];
-    fees?: NonNullable<ServiceDefinition["fees"]>;
-  },
-): EntityRegistry {
-  const merged: EntityRegistry = {
-    fieldNames: new Set(base.fieldNames),
-    stepIds: new Set(base.stepIds),
-    stateIds: new Set(base.stateIds),
-    feeIds: new Set(base.feeIds),
-    apiIds: new Set(base.apiIds),
-  };
-
-  for (const fee of extra.fees ?? []) {
-    merged.feeIds.add(fee.id);
-  }
-  for (const step of extra.steps ?? []) {
-    merged.stepIds.add(step.id);
-    for (const apiId of step.apiIds ?? []) {
-      merged.apiIds.add(apiId);
-    }
-  }
-
-  return merged;
+function validateConcession(
+  errors: ValidationError[],
+  registry: EntityRegistry,
+  concession: Concession,
+  index: number,
+): void {
+  validatePredicate(
+    errors,
+    registry,
+    concession.appliesWhen,
+    `concessions[${index}].appliesWhen`,
+  );
 }
 
 function validateFieldReference(
@@ -226,44 +212,6 @@ function validateTransitionReferences(
     );
   }
   validateRule(errors, registry, transition.guard, `${path}.guard`);
-}
-
-function validateConcession(
-  errors: ValidationError[],
-  baseRegistry: EntityRegistry,
-  concession: Concession,
-  index: number,
-): void {
-  const path = `concessions[${index}]`;
-  validatePredicate(
-    errors,
-    baseRegistry,
-    concession.appliesWhen,
-    `${path}.appliesWhen`,
-  );
-
-  const overrideRegistry = mergeRegistries(baseRegistry, {
-    fees: concession.overrides.fees,
-    steps: concession.overrides.steps,
-  });
-
-  concession.overrides.steps?.forEach((step, stepIndex) => {
-    validateStepReferences(
-      errors,
-      overrideRegistry,
-      step,
-      `${path}.overrides.steps[${stepIndex}]`,
-    );
-  });
-
-  concession.overrides.transitions?.forEach((transition, transitionIndex) => {
-    validateTransitionReferences(
-      errors,
-      overrideRegistry,
-      transition,
-      `${path}.overrides.transitions[${transitionIndex}]`,
-    );
-  });
 }
 
 function collectReferentialIntegrityErrors(

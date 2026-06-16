@@ -74,8 +74,19 @@ function runProfile(
   };
 
   const path = [app.stateId];
+  // Upper bound for a terminating walk: a machine with no guard-reachable cycle
+  // visits at most `states.length` distinct states. Exceeding it means a cycle;
+  // stop and report instead of looping forever.
+  const maxSteps = def.states.length + 1;
+  let steps = 0;
+  let nonTerminating = false;
 
   while (!isTerminalState(def, app.stateId)) {
+    if (steps >= maxSteps) {
+      nonTerminating = true;
+      break;
+    }
+
     const enabled = enabledTransitions(def, app);
     if (enabled.length === 0) {
       break;
@@ -93,6 +104,7 @@ function runProfile(
 
     app = result.next;
     path.push(app.stateId);
+    steps += 1;
   }
 
   const finalStatusCode = findStateStatusCode(def, app.stateId);
@@ -107,8 +119,10 @@ function runProfile(
     path,
     finalStatusCode,
     validity: app.validity,
-    ok: expectations.ok,
-    mismatch: expectations.mismatch,
+    ok: nonTerminating ? false : expectations.ok,
+    mismatch: nonTerminating
+      ? `did not terminate within ${maxSteps} steps (possible cycle)`
+      : expectations.mismatch,
   };
 }
 

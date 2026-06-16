@@ -100,7 +100,6 @@ export type Concession = {
   id: string;
   label: Localized;
   appliesWhen: Predicate;
-  overrides: Partial<Pick<ServiceDefinition, "fees" | "steps" | "transitions">>;
 };
 
 // ---------- fees ----------
