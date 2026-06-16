@@ -1,0 +1,199 @@
+{
+  "id": "business-registration",
+  "code": "BR-REG",
+  "names": {
+    "ar": "تسجيل شركة",
+    "en": "Business Registration"
+  },
+  "entityId": "ent-commerce",
+  "departmentId": "dept-registration",
+  "beneficiaryTypeIds": ["business"],
+  "fields": [
+    {
+      "name": "national_id",
+      "label": { "ar": "الرقم الوطني", "en": "National ID" },
+      "type": "text",
+      "required": true
+    },
+    {
+      "name": "commercial_registration_doc",
+      "label": { "ar": "وثيقة السجل التجاري", "en": "Commercial Registration Document" },
+      "type": "file",
+      "required": true,
+      "validation": {
+        "maxFileSizeBytes": 10485760,
+        "accept": ["application/pdf"]
+      }
+    }
+  ],
+  "steps": [
+    {
+      "id": "identity",
+      "kind": "IDENTITY",
+      "title": { "ar": "التحقق من الهوية", "en": "Identity Verification" },
+      "isOptional": false,
+      "estimatedMinutes": 5,
+      "apiIds": ["cspd_ok"],
+      "fieldNames": ["national_id"]
+    },
+    {
+      "id": "documents",
+      "kind": "UPLOAD",
+      "title": { "ar": "رفع الوثائق", "en": "Document Upload" },
+      "isOptional": false,
+      "estimatedMinutes": 10,
+      "fieldNames": ["commercial_registration_doc"]
+    },
+    {
+      "id": "dept-approval",
+      "kind": "APPROVAL",
+      "title": { "ar": "موافقة الدائرة", "en": "Department Approval" },
+      "isOptional": false,
+      "estimatedMinutes": 120,
+      "approverRoleIds": ["dept_officer"],
+      "requiresSignature": true,
+      "apiIds": ["dept_approval_ok"]
+    },
+    {
+      "id": "municipal-approval",
+      "kind": "APPROVAL",
+      "title": { "ar": "موافقة البلدية", "en": "Municipal Approval" },
+      "isOptional": false,
+      "estimatedMinutes": 120,
+      "approverRoleIds": ["municipal_officer"],
+      "requiresSignature": true,
+      "apiIds": ["municipal_approval_ok"]
+    }
+  ],
+  "states": [
+    {
+      "id": "submitted",
+      "status": { "ar": "تم التقديم", "en": "Submitted" },
+      "statusCode": "submitted",
+      "isTerminal": false
+    },
+    {
+      "id": "identity_verified",
+      "status": { "ar": "تم التحقق", "en": "Identity Verified" },
+      "statusCode": "identity_verified",
+      "isTerminal": false
+    },
+    {
+      "id": "documents_submitted",
+      "status": { "ar": "تم رفع الوثائق", "en": "Documents Submitted" },
+      "statusCode": "documents_submitted",
+      "isTerminal": false
+    },
+    {
+      "id": "pending_dept_approval",
+      "status": { "ar": "بانتظار موافقة الدائرة", "en": "Pending Department Approval" },
+      "statusCode": "pending_dept_approval",
+      "isTerminal": false
+    },
+    {
+      "id": "pending_municipal_approval",
+      "status": { "ar": "بانتظار موافقة البلدية", "en": "Pending Municipal Approval" },
+      "statusCode": "pending_municipal_approval",
+      "isTerminal": false
+    },
+    {
+      "id": "approved",
+      "status": { "ar": "مقبول", "en": "Approved" },
+      "statusCode": "approved",
+      "isTerminal": true
+    },
+    {
+      "id": "rejected",
+      "status": { "ar": "مرفوض", "en": "Rejected" },
+      "statusCode": "rejected",
+      "isTerminal": true
+    }
+  ],
+  "initialStateId": "submitted",
+  "transitions": [
+    {
+      "id": "t-identity",
+      "from": "submitted",
+      "to": "identity_verified",
+      "stepId": "identity",
+      "guard": {
+        "id": "guard-identity",
+        "cause": { "kind": "always" },
+        "conditions": [
+          { "kind": "fieldPresent", "field": "national_id" },
+          { "kind": "apiCheck", "check": "cspd_ok" }
+        ],
+        "impediments": []
+      }
+    },
+    {
+      "id": "t-upload",
+      "from": "identity_verified",
+      "to": "documents_submitted",
+      "stepId": "documents",
+      "guard": {
+        "id": "guard-upload",
+        "cause": { "kind": "fieldPresent", "field": "commercial_registration_doc" },
+        "conditions": [],
+        "impediments": []
+      }
+    },
+    {
+      "id": "t-submit-dept",
+      "from": "documents_submitted",
+      "to": "pending_dept_approval",
+      "guard": {
+        "id": "guard-submit-dept",
+        "cause": { "kind": "always" },
+        "conditions": [],
+        "impediments": []
+      }
+    },
+    {
+      "id": "t-dept-rejected",
+      "from": "pending_dept_approval",
+      "to": "rejected",
+      "guard": {
+        "id": "guard-dept-rejected",
+        "cause": { "kind": "always" },
+        "conditions": [],
+        "impediments": [{ "kind": "apiCheck", "check": "dept_approval_ok" }]
+      }
+    },
+    {
+      "id": "t-dept-to-municipal",
+      "from": "pending_dept_approval",
+      "to": "pending_municipal_approval",
+      "stepId": "dept-approval",
+      "guard": {
+        "id": "guard-dept-approved",
+        "cause": { "kind": "apiCheck", "check": "dept_approval_ok" },
+        "conditions": [],
+        "impediments": []
+      }
+    },
+    {
+      "id": "t-municipal-rejected",
+      "from": "pending_municipal_approval",
+      "to": "rejected",
+      "guard": {
+        "id": "guard-municipal-rejected",
+        "cause": { "kind": "always" },
+        "conditions": [],
+        "impediments": [{ "kind": "apiCheck", "check": "municipal_approval_ok" }]
+      }
+    },
+    {
+      "id": "t-municipal-approved",
+      "from": "pending_municipal_approval",
+      "to": "approved",
+      "stepId": "municipal-approval",
+      "guard": {
+        "id": "guard-municipal-approved",
+        "cause": { "kind": "apiCheck", "check": "municipal_approval_ok" },
+        "conditions": [],
+        "impediments": []
+      }
+    }
+  ]
+}

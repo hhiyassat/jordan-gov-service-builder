@@ -1,0 +1,52 @@
+# Operating rules — Declarative Government-Service Engine (core build)
+# Save this file as `.cursorrules` at the repo root, next to IMPLEMENTATION_PLAN.md.
+# (Cursor also supports `.cursor/rules/*.mdc` — either location works.)
+
+## Mission
+You are building the deterministic core specified in `IMPLEMENTATION_PLAN.md`.
+That plan is authoritative for WHAT to build. This file defines HOW you work.
+
+## Getting started (one time, by the human)
+1. Create a new, empty repository.
+2. Put `IMPLEMENTATION_PLAN.md` and this `.cursorrules` at its root. Nothing else.
+3. Open the repo in Cursor and send the **Kickoff prompt** at the bottom of this file.
+
+## Operating procedure — follow on EVERY task
+- Work strictly milestone by milestone, in order: M1 -> M2 -> M3 -> M4 -> M5 -> M6.
+  Never begin a milestone until the previous milestone's tests are green.
+- Implement exactly ONE milestone per turn. End each turn by stating:
+  (a) which milestone is complete, (b) the `typecheck`/`test` result,
+  (c) what the next milestone will do — then STOP and wait for approval.
+- After every milestone, run `pnpm typecheck && pnpm test`.
+  If anything is red, fix it before moving on. Never advance with failing or skipped tests.
+- Contract-first: implement `src/ir/types.ts` FIRST and treat it as the single source of
+  truth for all names. Do NOT introduce any identifier (type, field, function, status code)
+  that is not defined in `types.ts` or named in the plan. If a new name is genuinely needed,
+  add it to `types.ts` first, explain why, and keep it consistent everywhere.
+
+## Hard guardrails — never violate
+- No LLM/AI client imported anywhere under `src/`. The authoring agent is out of scope.
+- Pure & deterministic decision logic: no network, no `Date.now()`, no `Math.random()`
+  inside `rules/`, `engine/`, `validator/`, `simulator/`. Inject external data
+  (clock, API check results) as plain inputs.
+- TypeScript strict. No `any`. No non-null `!` to silence the compiler.
+  Exhaustive `switch` on every discriminated union, with a `never` exhaustiveness check.
+- Every module ships with its test file in the same milestone.
+  `rules/` and `engine/` require >= 95% coverage.
+- Do not import, modify, or reference any pre-existing / production code. This is a standalone package.
+- Keep all human-facing text as `Localized` ({ ar, en }); never hardcode display strings in logic.
+
+## Definition of done (whole build)
+`pnpm typecheck && pnpm test` is green; all three `examples/*.json` compile and simulate
+successfully; `src/index.ts` re-exports the public API listed in plan section 6.
+
+## Kickoff prompt — paste this as your FIRST message to the agent
+> Read `IMPLEMENTATION_PLAN.md` in full and obey `.cursorrules`. Do the project setup in
+> section 1 (strict TypeScript, vitest, zod, scripts). Then implement **Milestone M1 only**
+> (IR types + zod schema) together with its tests. Run `pnpm typecheck && pnpm test`,
+> report the results, and STOP — do not start M2.
+
+## Per-milestone prompt — reuse for M2 ... M6
+> Implement **Milestone M{N}** per `IMPLEMENTATION_PLAN.md` section 4, obeying `.cursorrules`.
+> The previous milestone's tests are green. Write the milestone's tests, run
+> `pnpm typecheck && pnpm test`, report, and STOP.

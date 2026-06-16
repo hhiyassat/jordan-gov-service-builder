@@ -1,0 +1,207 @@
+{
+  "id": "driving-license-renewal",
+  "code": "DL-RENEW",
+  "names": {
+    "ar": "تجديد رخصة القيادة",
+    "en": "Driving License Renewal"
+  },
+  "entityId": "ent-transport",
+  "departmentId": "dept-licensing",
+  "beneficiaryTypeIds": ["citizen"],
+  "fields": [
+    {
+      "name": "national_id",
+      "label": { "ar": "الرقم الوطني", "en": "National ID" },
+      "type": "text",
+      "required": true
+    },
+    {
+      "name": "license_number",
+      "label": { "ar": "رقم الرخصة", "en": "License Number" },
+      "type": "text",
+      "required": true
+    },
+    {
+      "name": "medical_certificate",
+      "label": { "ar": "الشهادة الطبية", "en": "Medical Certificate" },
+      "type": "file",
+      "required": true,
+      "validation": {
+        "maxFileSizeBytes": 5242880,
+        "accept": ["application/pdf", "image/jpeg"]
+      }
+    }
+  ],
+  "fees": [
+    {
+      "id": "renewal-fee",
+      "name": { "ar": "رسوم التجديد", "en": "Renewal Fee" },
+      "amount": 25,
+      "currency": "JOD"
+    }
+  ],
+  "steps": [
+    {
+      "id": "identity",
+      "kind": "IDENTITY",
+      "title": { "ar": "التحقق من الهوية", "en": "Identity Verification" },
+      "isOptional": false,
+      "estimatedMinutes": 5,
+      "apiIds": ["cspd_ok", "license_valid", "has_unpaid_fines"],
+      "fieldNames": ["national_id"]
+    },
+    {
+      "id": "application-form",
+      "kind": "FORM",
+      "title": { "ar": "نموذج الطلب", "en": "Application Form" },
+      "isOptional": false,
+      "estimatedMinutes": 10,
+      "fieldNames": ["license_number"]
+    },
+    {
+      "id": "medical-upload",
+      "kind": "UPLOAD",
+      "title": { "ar": "رفع الشهادة الطبية", "en": "Medical Certificate Upload" },
+      "isOptional": false,
+      "estimatedMinutes": 5,
+      "fieldNames": ["medical_certificate"]
+    },
+    {
+      "id": "payment",
+      "kind": "PAYMENT",
+      "title": { "ar": "دفع الرسوم", "en": "Fee Payment" },
+      "isOptional": false,
+      "estimatedMinutes": 10,
+      "feeIds": ["renewal-fee"]
+    },
+    {
+      "id": "details",
+      "kind": "DETAILS",
+      "title": { "ar": "تفاصيل الإصدار", "en": "Issuance Details" },
+      "isOptional": false,
+      "estimatedMinutes": 3
+    }
+  ],
+  "states": [
+    {
+      "id": "submitted",
+      "status": { "ar": "تم التقديم", "en": "Submitted" },
+      "statusCode": "submitted",
+      "isTerminal": false
+    },
+    {
+      "id": "identity_verified",
+      "status": { "ar": "تم التحقق", "en": "Identity Verified" },
+      "statusCode": "identity_verified",
+      "isTerminal": false
+    },
+    {
+      "id": "application_complete",
+      "status": { "ar": "اكتمل الطلب", "en": "Application Complete" },
+      "statusCode": "application_complete",
+      "isTerminal": false
+    },
+    {
+      "id": "documents_complete",
+      "status": { "ar": "اكتملت الوثائق", "en": "Documents Complete" },
+      "statusCode": "documents_complete",
+      "isTerminal": false
+    },
+    {
+      "id": "payment_complete",
+      "status": { "ar": "تم الدفع", "en": "Payment Complete" },
+      "statusCode": "payment_complete",
+      "isTerminal": false
+    },
+    {
+      "id": "completed",
+      "status": { "ar": "تم الإصدار", "en": "Issued" },
+      "statusCode": "completed",
+      "isTerminal": true
+    },
+    {
+      "id": "blocked_unpaid_fines",
+      "status": { "ar": "محجوب بسبب الغرامات", "en": "Blocked — Unpaid Fines" },
+      "statusCode": "blocked_unpaid_fines",
+      "isTerminal": true
+    }
+  ],
+  "initialStateId": "submitted",
+  "transitions": [
+    {
+      "id": "t-identity",
+      "from": "submitted",
+      "to": "identity_verified",
+      "stepId": "identity",
+      "guard": {
+        "id": "guard-identity",
+        "cause": { "kind": "always" },
+        "conditions": [
+          { "kind": "fieldPresent", "field": "national_id" },
+          { "kind": "apiCheck", "check": "cspd_ok" },
+          { "kind": "apiCheck", "check": "license_valid" }
+        ],
+        "impediments": []
+      }
+    },
+    {
+      "id": "t-application-form",
+      "from": "identity_verified",
+      "to": "application_complete",
+      "stepId": "application-form",
+      "guard": {
+        "id": "guard-application-form",
+        "cause": { "kind": "fieldPresent", "field": "license_number" },
+        "conditions": [],
+        "impediments": []
+      }
+    },
+    {
+      "id": "t-medical-upload",
+      "from": "application_complete",
+      "to": "documents_complete",
+      "stepId": "medical-upload",
+      "guard": {
+        "id": "guard-medical-upload",
+        "cause": { "kind": "fieldPresent", "field": "medical_certificate" },
+        "conditions": [],
+        "impediments": []
+      }
+    },
+    {
+      "id": "t-payment",
+      "from": "documents_complete",
+      "to": "payment_complete",
+      "stepId": "payment",
+      "guard": {
+        "id": "guard-payment",
+        "cause": { "kind": "always" },
+        "conditions": [],
+        "impediments": []
+      }
+    },
+    {
+      "id": "t-blocked-unpaid-fines",
+      "from": "payment_complete",
+      "to": "blocked_unpaid_fines",
+      "guard": {
+        "id": "guard-blocked-fines",
+        "cause": { "kind": "apiCheck", "check": "has_unpaid_fines" },
+        "conditions": [],
+        "impediments": []
+      }
+    },
+    {
+      "id": "t-issue-license",
+      "from": "payment_complete",
+      "to": "completed",
+      "stepId": "details",
+      "guard": {
+        "id": "guard-issue-license",
+        "cause": { "kind": "always" },
+        "conditions": [],
+        "impediments": [{ "kind": "apiCheck", "check": "has_unpaid_fines" }]
+      }
+    }
+  ]
+}

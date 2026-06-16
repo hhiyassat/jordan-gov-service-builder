@@ -1,0 +1,223 @@
+{
+  "id": "social-support-with-concession",
+  "code": "SS-CONC",
+  "names": {
+    "ar": "الدعم الاجتماعي مع ترخيص",
+    "en": "Social Support with Concession"
+  },
+  "entityId": "ent-social",
+  "departmentId": "dept-support",
+  "beneficiaryTypeIds": ["citizen"],
+  "fields": [
+    {
+      "name": "category",
+      "label": { "ar": "الفئة", "en": "Category" },
+      "type": "select",
+      "required": true,
+      "options": [
+        { "value": "standard", "label": { "ar": "عادي", "en": "Standard" } },
+        { "value": "low_income", "label": { "ar": "دخل محدود", "en": "Low Income" } }
+      ]
+    },
+    {
+      "name": "household_size",
+      "label": { "ar": "حجم الأسرة", "en": "Household Size" },
+      "type": "number",
+      "required": true,
+      "validation": { "min": 1, "max": 20 }
+    }
+  ],
+  "fees": [
+    {
+      "id": "support-fee",
+      "name": { "ar": "رسوم المعالجة", "en": "Processing Fee" },
+      "amount": 15,
+      "currency": "JOD"
+    }
+  ],
+  "steps": [
+    {
+      "id": "intake-form",
+      "kind": "FORM",
+      "title": { "ar": "نموذج الطلب", "en": "Intake Form" },
+      "isOptional": false,
+      "estimatedMinutes": 10,
+      "fieldNames": ["category", "household_size"]
+    },
+    {
+      "id": "assessment",
+      "kind": "IDENTITY",
+      "title": { "ar": "تقييم الأهلية", "en": "Eligibility Assessment" },
+      "isOptional": false,
+      "estimatedMinutes": 15,
+      "apiIds": ["eligibility_ok"]
+    },
+    {
+      "id": "payment",
+      "kind": "PAYMENT",
+      "title": { "ar": "دفع الرسوم", "en": "Fee Payment" },
+      "isOptional": false,
+      "estimatedMinutes": 10,
+      "feeIds": ["support-fee"]
+    },
+    {
+      "id": "details",
+      "kind": "DETAILS",
+      "title": { "ar": "تفاصيل القرار", "en": "Decision Details" },
+      "isOptional": false,
+      "estimatedMinutes": 5
+    }
+  ],
+  "states": [
+    {
+      "id": "submitted",
+      "status": { "ar": "تم التقديم", "en": "Submitted" },
+      "statusCode": "submitted",
+      "isTerminal": false
+    },
+    {
+      "id": "intake_complete",
+      "status": { "ar": "اكتمل التقديم", "en": "Intake Complete" },
+      "statusCode": "intake_complete",
+      "isTerminal": false
+    },
+    {
+      "id": "assessed",
+      "status": { "ar": "تم التقييم", "en": "Assessed" },
+      "statusCode": "assessed",
+      "isTerminal": false
+    },
+    {
+      "id": "awaiting_payment",
+      "status": { "ar": "بانتظار الدفع", "en": "Awaiting Payment" },
+      "statusCode": "awaiting_payment",
+      "isTerminal": false
+    },
+    {
+      "id": "waiver_granted",
+      "status": { "ar": "تم منح الإعفاء", "en": "Waiver Granted" },
+      "statusCode": "waiver_granted",
+      "isTerminal": false
+    },
+    {
+      "id": "completed",
+      "status": { "ar": "مكتمل", "en": "Completed" },
+      "statusCode": "completed",
+      "isTerminal": true
+    }
+  ],
+  "initialStateId": "submitted",
+  "transitions": [
+    {
+      "id": "t-intake",
+      "from": "submitted",
+      "to": "intake_complete",
+      "stepId": "intake-form",
+      "guard": {
+        "id": "guard-intake",
+        "cause": { "kind": "always" },
+        "conditions": [
+          { "kind": "fieldPresent", "field": "category" },
+          { "kind": "fieldPresent", "field": "household_size" }
+        ],
+        "impediments": []
+      }
+    },
+    {
+      "id": "t-assessment",
+      "from": "intake_complete",
+      "to": "assessed",
+      "stepId": "assessment",
+      "guard": {
+        "id": "guard-assessment",
+        "cause": { "kind": "apiCheck", "check": "eligibility_ok" },
+        "conditions": [],
+        "impediments": []
+      }
+    },
+    {
+      "id": "t-assessed-payment",
+      "from": "assessed",
+      "to": "awaiting_payment",
+      "guard": {
+        "id": "guard-assessed-payment",
+        "cause": { "kind": "fieldEquals", "field": "category", "value": "standard" },
+        "conditions": [],
+        "impediments": []
+      }
+    },
+    {
+      "id": "t-assessed-waiver",
+      "from": "assessed",
+      "to": "waiver_granted",
+      "guard": {
+        "id": "guard-assessed-waiver",
+        "cause": { "kind": "fieldEquals", "field": "category", "value": "low_income" },
+        "conditions": [],
+        "impediments": []
+      }
+    },
+    {
+      "id": "t-payment",
+      "from": "awaiting_payment",
+      "to": "completed",
+      "stepId": "payment",
+      "guard": {
+        "id": "guard-payment",
+        "cause": { "kind": "always" },
+        "conditions": [],
+        "impediments": []
+      }
+    },
+    {
+      "id": "t-waiver-complete",
+      "from": "waiver_granted",
+      "to": "completed",
+      "stepId": "details",
+      "guard": {
+        "id": "guard-waiver-complete",
+        "cause": { "kind": "always" },
+        "conditions": [],
+        "impediments": []
+      }
+    }
+  ],
+  "concessions": [
+    {
+      "id": "low-income-fee-waiver",
+      "label": {
+        "ar": "إعفاء رسوم الفئات محدودة الدخل",
+        "en": "Low Income Fee Waiver"
+      },
+      "appliesWhen": {
+        "kind": "fieldEquals",
+        "field": "category",
+        "value": "low_income"
+      },
+      "overrides": {
+        "fees": [
+          {
+            "id": "support-fee",
+            "name": { "ar": "رسوم مخفضة", "en": "Waived Fee" },
+            "amount": 0,
+            "currency": "JOD"
+          }
+        ],
+        "transitions": [
+          {
+            "id": "t-assessed-waiver-override",
+            "from": "assessed",
+            "to": "waiver_granted",
+            "stepId": "details",
+            "guard": {
+              "id": "guard-waiver-override",
+              "cause": { "kind": "always" },
+              "conditions": [],
+              "impediments": []
+            }
+          }
+        ]
+      }
+    }
+  ]
+}

@@ -1,0 +1,12 @@
+packages:
+  - "packages/*"
+
+# Run package scripts directly without an implicit pre-install check.
+verifyDepsBeforeRun: false
+
+# Allow vitest's esbuild to run its install script (CI-friendly, no prompt).
+onlyBuiltDependencies:
+  - esbuild
+
+allowBuilds:
+  esbuild: set this to true or false
